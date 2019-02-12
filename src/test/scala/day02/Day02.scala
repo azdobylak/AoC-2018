@@ -1,7 +1,7 @@
 import org.scalatest._
 import day02.Day02
 
-class Day02Tests extends FlatSpec{
+class Day02FirstPuzzleTests extends FlatSpec{
     val input_exercise: List[String] = List[String](
         "abcdef",
         "bababc",
@@ -11,5 +11,18 @@ class Day02Tests extends FlatSpec{
         "abcdee",
         "ababab"
     )
-    assert(Day02.solve(input_exercise) == 12)
+    assert(Day02.solve_first(input_exercise) == 12)
+}
+
+class Day02SecondPuzzleTests extends FlatSpec {
+    val input_exercise: List[String] = List[String](
+        "abcde",
+        "fghij",
+        "klmno",
+        "pqrst",
+        "fguij",
+        "axcye",
+        "wvxyz",
+    )
+    assert(Day02.solve_second(input_exercise) == "fgij")
 }
