@@ -3,6 +3,8 @@ package day04
 import scala.io.Source
 import com.github.nscala_time.time.Imports._
 
+import scala.collection.mutable
+import scala.collection.mutable.Buffer
 import scala.util.{Failure, Success, Try}
 
 
@@ -49,7 +51,32 @@ object Day04{
     def solve_first(lines: List[String]): Int = {
         val dateAndText: List[(DateTime, String)] = lines.map(line => parseLogDate(line)).sortBy(a => a._1)
         val guardsHours = groupDates(dateAndText)
-        0
+        val guardsAwakeMinutes: List[(Int, List[Int])] = guardsHours.map {
+            case (id, dates) =>
+                var isAwake: Boolean = false
+                var previousMinute: Int = -1
+                val awakeMinutes: mutable.Buffer[Int] = mutable.Buffer.fill(60)(0)
+                for (timestamp <- dates) {
+                    isAwake = !isAwake
+                    val currentMinute = timestamp.getMinuteOfDay
+                    if (timestamp.getHourOfDay == 0) {
+                        val currentMinute = timestamp.getMinuteOfDay
+                        for (i <- previousMinute.max(0) to currentMinute)
+                            awakeMinutes(i) = if (isAwake) 1 else 0
+                    }
+                    previousMinute = currentMinute
+                }
+                for (i <- previousMinute to 59)
+                    awakeMinutes.updated(i, if (isAwake) 1 else 0)
+
+                (id, awakeMinutes.toList)
+        }
+        val minutesPerGuard = guardsAwakeMinutes.groupBy(_._1).mapValues(seq => seq.reduce{(x, y) => (x._1, (x._2, y._2).zipped.map{_ + _})}).mapValues(_._2)
+
+        val cumulativeGuardSleep = minutesPerGuard.mapValues(_.sum)
+        val mostSleepyGuardId = cumulativeGuardSleep.maxBy(_._2)._1
+
+        minutesPerGuard(mostSleepyGuardId).zipWithIndex.maxBy(_._1)._2 * mostSleepyGuardId
     }
 
     def solve_second(lines: List[String]): Int = {
