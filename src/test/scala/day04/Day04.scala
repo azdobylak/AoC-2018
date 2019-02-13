@@ -22,4 +22,5 @@ class Day04FirstPuzzleTests extends FlatSpec{
         "[1518-11-05 00:55] wakes up",
     )
     assert(Day04.solve_first(input_exercise) == 10 * 24)
+    assert(Day04.solve_second(input_exercise) == 99 * 45)
 }

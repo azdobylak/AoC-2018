@@ -48,10 +48,8 @@ object Day04{
         groupGuardDates(rest, id, List(date))
     }
 
-    def solve_first(lines: List[String]): Int = {
-        val dateAndText: List[(DateTime, String)] = lines.map(line => parseLogDate(line)).sortBy(a => a._1)
-        val guardsHours = groupDates(dateAndText)
-        val guardsAwakeMinutes: List[(Int, List[Int])] = guardsHours.map {
+    private def countAsleepMinutesPerGuard(guardsHours: List[(Int, List[DateTime])]): List[(Int, List[Int])] = {
+        guardsHours.map {
             case (id, dates) =>
                 var isAwake: Boolean = false
                 var previousMinute: Int = -1
@@ -71,15 +69,25 @@ object Day04{
 
                 (id, awakeMinutes.toList)
         }
-        val minutesPerGuard = guardsAwakeMinutes.groupBy(_._1).mapValues(seq => seq.reduce{(x, y) => (x._1, (x._2, y._2).zipped.map{_ + _})}).mapValues(_._2)
+    }
 
-        val cumulativeGuardSleep = minutesPerGuard.mapValues(_.sum)
-        val mostSleepyGuardId = cumulativeGuardSleep.maxBy(_._2)._1
+    def solve_first(lines: List[String]): Int = {
+        val guardsHours = groupDates(lines.map(line => parseLogDate(line)).sortBy(a => a._1))
+        val guardsAwakeMinutes: List[(Int, List[Int])] = countAsleepMinutesPerGuard(guardsHours)
+
+        val minutesPerGuard = guardsAwakeMinutes.groupBy(_._1).mapValues(seq => seq.reduce{(x, y) => (x._1, (x._2, y._2).zipped.map{_ + _})}).mapValues(_._2)
+        val mostSleepyGuardId = minutesPerGuard.mapValues(_.sum).maxBy(_._2)._1
 
         minutesPerGuard(mostSleepyGuardId).zipWithIndex.maxBy(_._1)._2 * mostSleepyGuardId
     }
 
     def solve_second(lines: List[String]): Int = {
-        0
+        val guardsHours = groupDates(lines.map(line => parseLogDate(line)).sortBy(a => a._1))
+        val guardsAwakeMinutes: List[(Int, List[Int])] = countAsleepMinutesPerGuard(guardsHours)
+
+        val minutesPerGuard = guardsAwakeMinutes.groupBy(_._1).mapValues(seq => seq.reduce{(x, y) => (x._1, (x._2, y._2).zipped.map{_ + _})}).mapValues(_._2)
+        val mostSleepyGuardId = minutesPerGuard.mapValues(_.max).maxBy(_._2)._1
+
+        minutesPerGuard(mostSleepyGuardId).zipWithIndex.maxBy(_._1)._2 * mostSleepyGuardId
     }
 }
