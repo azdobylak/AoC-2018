@@ -24,7 +24,7 @@ object Day05 {
                   else
                       reduceString(b+:rest, acc :+ a)
               case b+:IndexedSeq() => (acc :+ b).mkString
-              case IndexedSeq() => acc.toString
+              case IndexedSeq() => if (acc.isEmpty) "" else acc.toString
           }
         }
         reduceString(line.toVector, Vector.empty[Char])
