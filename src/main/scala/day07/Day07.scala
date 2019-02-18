@@ -25,6 +25,12 @@ object Day07 {
     def traversePseudoTree(charPairs: List[(String, String)]): String = {
         @annotation.tailrec
         def traverse(tasksMap: List[(String, String)], availableTasks: mutable.SortedSet[String], tasksOrder: String): String = {
+            val tasksWaitingForPrerequisite: List[String] =
+                tasksMap.collect{ case pair if !(tasksOrder contains pair._1) => pair._2 }
+            val tasksPairsInQueue = tasksMap.filter(pair => !tasksWaitingForPrerequisite.contains(pair._1))
+
+            availableTasks ++= tasksPairsInQueue.map(_._1)
+
             if(availableTasks.isEmpty)
                 return tasksOrder
 
@@ -38,14 +44,12 @@ object Day07 {
             for(taskPair <- foundTasks) {
                 val availableTask = taskPair._2
                 val arePrerequisitesDone: Boolean = tasksMap.filter(_._2 == availableTask).map(acc contains _._1).forall(identity)
-                if(arePrerequisitesDone && !(tasksOrder contains availableTask) && availableTask != task)
+                if(arePrerequisitesDone && !(tasksOrder contains availableTask))
                     availableTasksTail += availableTask
             }
 
             traverse(otherTasks, availableTasksTail, acc)
-
-            //val pairsWithHeadCharAsParent = chairPairs.filter(pair => pair._1 == headChar && !(acc contains pair._2))
-            }
+        }
         traverse(charPairs, mutable.SortedSet[String](charPairs.head._1), "")
     }
 
