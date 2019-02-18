@@ -23,34 +23,40 @@ object Day07 {
     }
 
     def traversePseudoTree(charPairs: List[(String, String)]): String = {
-        @annotation.tailrec
-        def traverse(tasksMap: List[(String, String)], availableTasks: mutable.SortedSet[String], tasksOrder: String): String = {
+        var availableTasks = mutable.SortedSet[String](charPairs.head._1)
+
+        def traverse(tasksMap: List[(String, String)], tasksOrder: String): Char = {
+            val tasksLeft = tasksMap.filterNot(tasksOrder contains _._1)
             val tasksWaitingForPrerequisite: List[String] =
-                tasksMap.collect{ case pair if !(tasksOrder contains pair._1) => pair._2 }
-            val tasksPairsInQueue = tasksMap.filter(pair => !tasksWaitingForPrerequisite.contains(pair._1))
+                tasksLeft.collect{ case pair if !(tasksOrder contains pair._1) => pair._2 }
+            val tasksPairsInQueue = tasksLeft.filter(pair => !tasksWaitingForPrerequisite.contains(pair._1))
 
             availableTasks ++= tasksPairsInQueue.map(_._1)
 
-            if(availableTasks.isEmpty)
-                return tasksOrder
-
             val task = availableTasks.head
-            val availableTasksTail = availableTasks.tail
-            val foundTasks = tasksMap.filter(_._1 == task)
-            val otherTasks = tasksMap.filter(_._1 != task)
+            availableTasks = availableTasks.tail
+            val foundTasks = tasksLeft.filter(_._1 == task)
+            val otherTasks = tasksLeft.filter(_._1 != task)
 
             val acc = tasksOrder + task
 
             for(taskPair <- foundTasks) {
                 val availableTask = taskPair._2
-                val arePrerequisitesDone: Boolean = tasksMap.filter(_._2 == availableTask).map(acc contains _._1).forall(identity)
+                val arePrerequisitesDone: Boolean = tasksLeft.filter(_._2 == availableTask).map(acc contains _._1).forall(identity)
                 if(arePrerequisitesDone && !(tasksOrder contains availableTask))
-                    availableTasksTail += availableTask
+                    availableTasks += availableTask
             }
-
-            traverse(otherTasks, availableTasksTail, acc)
+            task.charAt(0)
         }
-        traverse(charPairs, mutable.SortedSet[String](charPairs.head._1), "")
+
+        var result: String = ""
+
+        do{
+            val char: Char = traverse(charPairs, result)
+            result += char
+        } while(availableTasks.nonEmpty)
+
+        result
     }
 
     def solve_first(lines: List[String]): String = {
