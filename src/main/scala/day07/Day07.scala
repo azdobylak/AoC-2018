@@ -3,8 +3,25 @@ package day07
 import java.net.URL
 
 import scala.io.Source
-import scala.annotation.tailrec
 import scala.collection.mutable
+
+
+case class Worker(var sleepTime: Int,
+                  var task: Option[Char] = None,
+                  var secondsToFinishTask: Int = 0) {
+
+    def finishTask(): Unit = this.task = None
+
+    def setTask(task: Char): Unit = {
+        this.task = Some(task)
+        this.secondsToFinishTask = this.sleepTime
+    }
+
+    def work(): Unit = this.secondsToFinishTask -= 1
+
+    def isBusy: Boolean = this.secondsToFinishTask > 0
+    def hasFinished: Boolean = this.task.isEmpty
+}
 
 
 object Day07 {
@@ -13,7 +30,7 @@ object Day07 {
 
     def main(args: Array[String]): Unit = {
         println(solve_first(lines))
-        println(solve_second(lines))
+        //println(solve_second(lines))
     }
 
     def parseInput(line: String): (String, String) = {
@@ -22,7 +39,7 @@ object Day07 {
         (matches.group(1), matches.group(2))
     }
 
-    def traversePseudoTree(charPairs: List[(String, String)]): String = {
+    def traversePseudoTree(charPairs: List[(String, String)], perCharSecondsOverhead:Int,  workersNum: Int = 1): String = {
         var availableTasks = mutable.SortedSet[String](charPairs.head._1)
 
         def traverse(tasksMap: List[(String, String)], tasksOrder: String): Char = {
@@ -49,19 +66,29 @@ object Day07 {
             task.charAt(0)
         }
 
+        val workers: List[Worker] = List.fill[Worker](workersNum)(Worker(perCharSecondsOverhead))
+
         var result: String = ""
 
         do{
-            val char: Char = traverse(charPairs, result)
-            result += char
-        } while(availableTasks.nonEmpty)
+            for(worker <- workers)
+            {
+                if (worker.isBusy)
+                    worker.work()
+                else
+                    worker.task match{
+                        case Some(c: Char) => result += c; worker.finishTask()
+                        case None => worker.setTask(traverse(charPairs, result))
+                    }
+            }
+        } while(availableTasks.nonEmpty || workers.map(!_.hasFinished).exists(identity))
 
         result
     }
 
     def solve_first(lines: List[String]): String = {
         val charPairs: List[(String, String)]  = lines.map(l => parseInput(l))
-        traversePseudoTree(charPairs)
+        traversePseudoTree(charPairs, 0, 1)
     }
 
     def solve_second(lines: List[String]): Int = {
