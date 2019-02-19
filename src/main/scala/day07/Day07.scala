@@ -3,7 +3,7 @@ package day07
 import java.net.URL
 
 import scala.io.Source
-import scala.collection.mutable
+import scala.collection.{SortedSet, mutable}
 
 
 case class Worker(var sleepTime: Int,
@@ -14,7 +14,7 @@ case class Worker(var sleepTime: Int,
 
     def setTask(task: Char): Unit = {
         this.task = Some(task)
-        this.secondsToFinishTask = this.sleepTime
+        this.secondsToFinishTask = this.sleepTime + (task - 'A' + 1)
     }
 
     def work(): Unit = this.secondsToFinishTask -= 1
@@ -30,68 +30,79 @@ object Day07 {
 
     def main(args: Array[String]): Unit = {
         println(solve_first(lines))
-        //println(solve_second(lines))
+        println(solve_second(lines))
     }
 
-    def parseInput(line: String): (String, String) = {
+    def parseInput(line: String): (Char, Char) = {
         val pattern = "Step ([a-zA-Z]) must be finished before step ([a-zA-Z]) can begin.".r
         val matches = pattern.findAllIn(line)
-        (matches.group(1), matches.group(2))
+        (matches.group(1)(0), matches.group(2)(0))
     }
 
-    def traversePseudoTree(charPairs: List[(String, String)], perCharSecondsOverhead:Int,  workersNum: Int = 1): String = {
-        var availableTasks = mutable.SortedSet[String](charPairs.head._1)
+    def traversePseudoTree(charPairs: List[(Char, Char)], charAdditionalProcessingTime: Int, workersNum: Int = 1): (String, Int) = {
 
-        def traverse(tasksMap: List[(String, String)], tasksOrder: String): Char = {
-            val tasksLeft = tasksMap.filterNot(tasksOrder contains _._1)
-            val tasksWaitingForPrerequisite: List[String] =
-                tasksLeft.collect{ case pair if !(tasksOrder contains pair._1) => pair._2 }
-            val tasksPairsInQueue = tasksLeft.filter(pair => !tasksWaitingForPrerequisite.contains(pair._1))
+        def traverse(tasksMap: List[(Char, Char)], tasksOrder: String): SortedSet[Char] = {
+            val tasksLeft = tasksMap.filterNot(p => (tasksOrder contains p._1) && (tasksOrder contains p._2))
+            val blockedTasks: Set[Char] =
+                tasksLeft.collect{ case pair if !(tasksOrder contains pair._1) => pair._2 }.toSet
+            val tasksPool = tasksLeft.flatten{case (c1, c2) => List(c1, c2)}.toSet diff tasksOrder.toSet
 
-            availableTasks ++= tasksPairsInQueue.map(_._1)
+            val availableTasks: SortedSet[Char] = SortedSet.empty[Char] ++ (tasksPool diff blockedTasks)
 
-            val task = availableTasks.head
-            availableTasks = availableTasks.tail
-            val foundTasks = tasksLeft.filter(_._1 == task)
-            val otherTasks = tasksLeft.filter(_._1 != task)
-
-            val acc = tasksOrder + task
-
-            for(taskPair <- foundTasks) {
-                val availableTask = taskPair._2
-                val arePrerequisitesDone: Boolean = tasksLeft.filter(_._2 == availableTask).map(acc contains _._1).forall(identity)
-                if(arePrerequisitesDone && !(tasksOrder contains availableTask))
-                    availableTasks += availableTask
-            }
-            task.charAt(0)
+            availableTasks
         }
 
-        val workers: List[Worker] = List.fill[Worker](workersNum)(Worker(perCharSecondsOverhead))
-
+        val workers: List[Worker] = List.fill[Worker](workersNum)(Worker(charAdditionalProcessingTime))
         var result: String = ""
+        var timeElapsed: Int = 0
+        val blockedChars: mutable.Set[Char] = mutable.Set.empty[Char]
 
+        var wasTurnIdle = true
         do{
-            for(worker <- workers)
-            {
-                if (worker.isBusy)
-                    worker.work()
-                else
-                    worker.task match{
-                        case Some(c: Char) => result += c; worker.finishTask()
-                        case None => worker.setTask(traverse(charPairs, result))
+            wasTurnIdle = true
+            for(worker <- workers) {
+                if(!worker.isBusy){
+                    // finish task if there is any
+                    worker.task match {
+                        case Some(c: Char) => {
+                            result += c
+                            blockedChars.remove(c)
+                            worker.finishTask()
+                        }
+                        case None =>
                     }
+                }
+                if(!worker.isBusy){
+                    // try to pick new task
+                    val chars: SortedSet[Char] =  traverse(charPairs, result)
+                    val freeChars = chars diff blockedChars
+                    if(freeChars.nonEmpty) {
+                        val c = freeChars.head
+                        worker.setTask(c)
+                        blockedChars.add(c)
+                        wasTurnIdle = false
+                    }
+                }
+                if (worker.isBusy){
+                    worker.work()
+                    wasTurnIdle = false
+                }
             }
-        } while(availableTasks.nonEmpty || workers.map(!_.hasFinished).exists(identity))
+            timeElapsed += 1
+        } while(!wasTurnIdle)
 
-        result
+        (result, timeElapsed - 1)
     }
 
     def solve_first(lines: List[String]): String = {
-        val charPairs: List[(String, String)]  = lines.map(l => parseInput(l))
-        traversePseudoTree(charPairs, 0, 1)
+        val charPairs: List[(Char, Char)]  = lines.map(l => parseInput(l))
+        val (tasks, _) = traversePseudoTree(charPairs, 0, 1)
+        tasks
     }
 
-    def solve_second(lines: List[String]): Int = {
-        0
+    def solve_second(lines: List[String], processingTime: Int = 60, workersNum: Int = 5): Int = {
+        val charPairs: List[(Char, Char)]  = lines.map(l => parseInput(l))
+        val (_, time) = traversePseudoTree(charPairs, processingTime, workersNum)
+        time
     }
 }

@@ -14,4 +14,5 @@ class Day07PuzzleTests extends FlatSpec{
     )
 
     assert(Day07.solve_first(input_exercise) == "CABDFE")
+    assert(Day07.solve_second(input_exercise, 0, 2) == 15)
 }
